@@ -1,0 +1,68 @@
+{
+  "name": "react-native-notitoast",
+  "version": "1.0.0",
+  "description": "Neat, notification-style toast messages for React Native — success, error, warning & info with image support. Zero dependencies.",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "src",
+    "lib",
+    "!**/__tests__",
+    "!**/*.test.*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bob build",
+    "prepare": "bob build",
+    "release": "npm publish --access public"
+  },
+  "keywords": [
+    "react-native",
+    "toast",
+    "notification",
+    "snackbar",
+    "alert",
+    "banner",
+    "expo",
+    "ios",
+    "android"
+  ],
+  "license": "MIT",
+  "author": "Vasanthakumar A <2002vasanthakumar@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vasanthakumar2k/react-native-notitoast.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vasanthakumar2k/react-native-notitoast/issues"
+  },
+  "homepage": "https://github.com/vasanthakumar2k/react-native-notitoast#readme",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.72.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "react-native": "^0.88.1",
+    "react-native-builder-bob": "^0.44.1",
+    "typescript": "^7.0.2"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
+}
