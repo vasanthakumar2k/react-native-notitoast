@@ -26,6 +26,8 @@ const demos: [string, () => void][] = [
   ['Fixed height', () => toast.info('Fixed height', '80px tall', { height: 80 })],
   ['Long duration', () => toast.info('Stays 8 seconds', undefined, { duration: 8000, showProgress: true })],
   ['Sticky', () => toast.warning('Stays until swiped', 'Swipe up to close', { duration: 0 })],
+  ['Swipe sideways only', () => toast.info('Swipe left or right', 'Up is turned off', { duration: 0, swipeUp: false })],
+  ['No swipe', () => toast.info('No swipe', 'Tap to close', { duration: 0, swipeable: false })],
   ['Update in place', () => {
     const id = toast.info('Uploading…', 'Please wait', { duration: 0 });
     setTimeout(() => toast.success('Uploaded', 'Your file is live', { id }), 2000);
@@ -46,7 +48,7 @@ function Demo() {
 
 export default function App() {
   return (
-    <ToastProvider appName="My App">
+    <ToastProvider>
       <Demo />
     </ToastProvider>
   );

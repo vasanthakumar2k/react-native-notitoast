@@ -21,7 +21,7 @@ import { ToastProvider } from 'react-native-notitoast';
 
 export default function App() {
   return (
-    <ToastProvider appName="My App">
+    <ToastProvider>
       <RootNavigator />
     </ToastProvider>
   );
@@ -145,6 +145,10 @@ Hook form: `const toast = useToast();`
 | `position` | `'top' \| 'bottom'` | `'top'` |
 | `duration` | ms, `0` = sticky | per type |
 | `showProgress` | `boolean` | `false` |
+| `swipeable` | `boolean` — `false` turns off all swipe directions | `true` |
+| `swipeLeft` `swipeRight` | `boolean` — swipe sideways to dismiss | `true` |
+| `swipeUp` | `boolean` | `true` on top toasts, `false` on bottom |
+| `swipeDown` | `boolean` | `true` on bottom toasts, `false` on top |
 | `showIcon` | `boolean` | `true` |
 | `showTypeBadge` | `boolean` — badge on left image / app icon | `true` |
 | `showAccentBar` | `boolean` | auto (on when no left icon) |
@@ -177,8 +181,6 @@ Hook form: `const toast = useToast();`
 | Prop | Type | Default |
 | --- | --- | --- |
 | `theme` | `'light' \| 'dark' \| 'system'` | `'system'` |
-| `appName` | `string` — "MY APP · now" header | — |
-| `timeLabel` | `string` | `'now'` |
 | `colors` | `{ success?, error?, warning?, info? }` | green / red / amber / blue |
 | `durations` | `{ success?, error?, warning?, info? }` | 3500 / 5000 / 4000 / 3500 |
 | `topOffset` | `number` | iOS 54, Android status bar + 8 |
@@ -191,7 +193,7 @@ Hook form: `const toast = useToast();`
 ## Behaviour
 
 - Toasts queue: one at a time, the next slides in after.
-- Swipe up (down for bottom) to dismiss. Press and hold pauses the timer.
+- Swipe left, right or up (down for bottom toasts) to dismiss. Turn any direction off, e.g. `swipeLeft={false}`, or all of them with `swipeable={false}`. Press and hold pauses the timer.
 - Announced to screen readers.
 - Toasts render behind an open React Native `<Modal>`. Put another `<ToastProvider>` inside the modal if needed.
 

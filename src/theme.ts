@@ -27,7 +27,6 @@ export const palettes = {
     border: 'rgba(0,0,0,0.06)',
     title: '#111827',
     message: '#4B5563',
-    header: '#9CA3AF',
     track: 'rgba(0,0,0,0.05)',
   },
   dark: {
@@ -35,7 +34,6 @@ export const palettes = {
     border: 'rgba(255,255,255,0.08)',
     title: '#F9FAFB',
     message: '#D1D5DB',
-    header: '#8B8F98',
     track: 'rgba(255,255,255,0.08)',
   },
 };

@@ -23,6 +23,17 @@ export interface ToastAppearance {
   /** Thin countdown bar at the bottom. Default: false. */
   showProgress?: boolean;
 
+  /** Master switch for swipe-to-dismiss. `false` turns off every direction. Default: true. */
+  swipeable?: boolean;
+  /** Swipe left to dismiss. Default: true. */
+  swipeLeft?: boolean;
+  /** Swipe right to dismiss. Default: true. */
+  swipeRight?: boolean;
+  /** Swipe up to dismiss. Default: true for top toasts, false for bottom toasts. */
+  swipeUp?: boolean;
+  /** Swipe down to dismiss. Default: true for bottom toasts, false for top toasts. */
+  swipeDown?: boolean;
+
   /** Show the success/error/warning/info icon. Default: true. */
   showIcon?: boolean;
   /** Small type badge on the corner of a left image / app icon. Default: true. */
@@ -84,9 +95,6 @@ export interface ToastConfig extends ToastAppearance {
   topOffset?: number;
   bottomOffset?: number;
   theme?: ToastTheme;
-  /** Small header line like a system notification: "MY APP · now". */
-  appName?: string;
-  timeLabel?: string;
   /** Type colors. */
   colors?: Partial<Record<ToastType, string>>;
   /** Default duration per type, e.g. { error: 6000 }. */
