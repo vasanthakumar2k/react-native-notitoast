@@ -12,7 +12,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { ImageSourcePropType } from 'react-native';
+import type {
+  ImageSourcePropType,
+  PanResponderGestureState,
+} from 'react-native';
 import { defaultDurations, palettes, typeColors, typeGlyphs } from './theme';
 import type { ToastAppearance, ToastConfig, ToastData } from './types';
 
@@ -106,14 +109,27 @@ export function ToastItem({
 
   const translateX = useRef(new Animated.Value(0)).current;
   const dragging = useRef(false);
+  // Fade out while dragged sideways.
+  const sideFade = useRef(
+    translateX.interpolate({
+      inputRange: [-Dimensions.get('window').width, 0, Dimensions.get('window').width],
+      outputRange: [0, 1, 0],
+      extrapolate: 'clamp',
+    })
+  ).current;
 
   // Swipe directions. `swipeable: false` turns all of them off.
   const swipeable = o.swipeable ?? true;
+  // Left/right are opt-in. Up (top) / down (bottom) is the default, used
+  // only while neither left nor right is turned on.
+  const left = swipeable && (o.swipeLeft ?? false);
+  const right = swipeable && (o.swipeRight ?? false);
+  const sideways = left || right;
   const swipe = {
-    left: swipeable && (o.swipeLeft ?? true),
-    right: swipeable && (o.swipeRight ?? true),
-    up: swipeable && (o.swipeUp ?? isTop),
-    down: swipeable && (o.swipeDown ?? !isTop),
+    left,
+    right,
+    up: swipeable && (o.swipeUp ?? (isTop && !sideways)),
+    down: swipeable && (o.swipeDown ?? (!isTop && !sideways)),
   };
   const swipeRef = useRef(swipe);
   swipeRef.current = swipe;
@@ -189,15 +205,21 @@ export function ToastItem({
   const follow = (d: number, negOk: boolean, posOk: boolean) =>
     d < 0 ? (negOk ? d : d * 0.15) : posOk ? d : d * 0.15;
 
+  /** Claim the drag only on an axis that has an enabled direction. */
+  const shouldClaim = (g: PanResponderGestureState) => {
+    const s = swipeRef.current;
+    const absX = Math.abs(g.dx);
+    const absY = Math.abs(g.dy);
+    if (absX > absY) return absX > 6 && (s.left || s.right);
+    return absY > 6 && (s.up || s.down);
+  };
+
   const pan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => {
-        const s = swipeRef.current;
-        const absX = Math.abs(g.dx);
-        const absY = Math.abs(g.dy);
-        if (absX > absY) return absX > 8 && (s.left || s.right);
-        return absY > 6 && (s.up || s.down);
-      },
+      // Capture phase: take the drag before the inner Pressable can keep it,
+      // otherwise sideways drags can get swallowed by the press handling.
+      onMoveShouldSetPanResponderCapture: (_, g) => shouldClaim(g),
+      onMoveShouldSetPanResponder: (_, g) => shouldClaim(g),
       onPanResponderGrant: (_, g) => {
         axis.current = Math.abs(g.dx) > Math.abs(g.dy) ? 'x' : 'y';
         dragging.current = true;
@@ -215,8 +237,8 @@ export function ToastItem({
         const s = swipeRef.current;
         let direction: SwipeDirection | undefined;
         if (axis.current === 'x') {
-          if (s.left && (g.dx < -80 || g.vx < -0.5)) direction = 'left';
-          else if (s.right && (g.dx > 80 || g.vx > 0.5)) direction = 'right';
+          if (s.left && (g.dx < -60 || g.vx < -0.3)) direction = 'left';
+          else if (s.right && (g.dx > 60 || g.vx > 0.3)) direction = 'right';
         } else {
           if (s.up && (g.dy < -24 || g.vy < -0.6)) direction = 'up';
           else if (s.down && (g.dy > 24 || g.vy > 0.6)) direction = 'down';
@@ -294,7 +316,10 @@ export function ToastItem({
       style={[
         styles.container,
         isTop ? { top: topOffset } : { bottom: bottomOffset },
-        { opacity, transform: [{ translateX }, { translateY }] },
+        {
+          opacity: Animated.multiply(opacity, sideFade),
+          transform: [{ translateX }, { translateY }],
+        },
       ]}
       {...pan.panHandlers}
     >

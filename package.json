@@ -1,6 +1,6 @@
 {
   "name": "react-native-notitoast",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Notification-style toast messages for React Native: success, error, warning and info toasts with images, app icon, variants and full customization. Zero dependencies, Expo ready.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",

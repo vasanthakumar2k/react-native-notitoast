@@ -146,9 +146,9 @@ Hook form: `const toast = useToast();`
 | `duration` | ms, `0` = sticky | per type |
 | `showProgress` | `boolean` | `false` |
 | `swipeable` | `boolean` — `false` turns off all swipe directions | `true` |
-| `swipeLeft` `swipeRight` | `boolean` — swipe sideways to dismiss | `true` |
-| `swipeUp` | `boolean` | `true` on top toasts, `false` on bottom |
-| `swipeDown` | `boolean` | `true` on bottom toasts, `false` on top |
+| `swipeLeft` `swipeRight` | `boolean` — swipe sideways to dismiss. Turning either on turns the default up/down swipe off | `false` |
+| `swipeUp` | `boolean` | `true` on top toasts when left/right are off |
+| `swipeDown` | `boolean` | `true` on bottom toasts when left/right are off |
 | `showIcon` | `boolean` | `true` |
 | `showTypeBadge` | `boolean` — badge on left image / app icon | `true` |
 | `showAccentBar` | `boolean` | auto (on when no left icon) |
@@ -183,7 +183,7 @@ Hook form: `const toast = useToast();`
 | `theme` | `'light' \| 'dark' \| 'system'` | `'system'` |
 | `colors` | `{ success?, error?, warning?, info? }` | green / red / amber / blue |
 | `durations` | `{ success?, error?, warning?, info? }` | 3500 / 5000 / 4000 / 3500 |
-| `topOffset` | `number` | iOS 54, Android status bar + 8 |
+| `topOffset` | `number` | below the notch / Dynamic Island on iOS, status bar + 8 on Android |
 | `bottomOffset` | `number` | `40` |
 
 **Left slot priority:** left `image` → `icon` → `appIcon` → type icon → accent stripe.
@@ -193,7 +193,7 @@ Hook form: `const toast = useToast();`
 ## Behaviour
 
 - Toasts queue: one at a time, the next slides in after.
-- Swipe left, right or up (down for bottom toasts) to dismiss. Turn any direction off, e.g. `swipeLeft={false}`, or all of them with `swipeable={false}`. Press and hold pauses the timer.
+- By default, swipe up to dismiss (down for bottom toasts). Turn on `swipeRight` and/or `swipeLeft` to dismiss sideways instead; then up/down is off unless you also set `swipeUp` / `swipeDown`. `swipeable={false}` turns all swiping off. Press and hold pauses the timer.
 - Announced to screen readers.
 - Toasts render behind an open React Native `<Modal>`. Put another `<ToastProvider>` inside the modal if needed.
 

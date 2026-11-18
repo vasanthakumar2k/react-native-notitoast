@@ -25,13 +25,13 @@ export interface ToastAppearance {
 
   /** Master switch for swipe-to-dismiss. `false` turns off every direction. Default: true. */
   swipeable?: boolean;
-  /** Swipe left to dismiss. Default: true. */
+  /** Swipe left to dismiss. Default: false. Turning left or right on turns the default up/down swipe off. */
   swipeLeft?: boolean;
-  /** Swipe right to dismiss. Default: true. */
+  /** Swipe right to dismiss. Default: false. Turning left or right on turns the default up/down swipe off. */
   swipeRight?: boolean;
-  /** Swipe up to dismiss. Default: true for top toasts, false for bottom toasts. */
+  /** Swipe up to dismiss. Default: true for top toasts when left/right are off. */
   swipeUp?: boolean;
-  /** Swipe down to dismiss. Default: true for bottom toasts, false for top toasts. */
+  /** Swipe down to dismiss. Default: true for bottom toasts when left/right are off. */
   swipeDown?: boolean;
 
   /** Show the success/error/warning/info icon. Default: true. */
@@ -91,7 +91,7 @@ export interface ToastOptions extends ToastAppearance {
 }
 
 export interface ToastConfig extends ToastAppearance {
-  /** Distance from the top edge. Tip: pass useSafeAreaInsets().top + 8. */
+  /** Distance from the top edge. Default: below the status bar / notch / Dynamic Island. Tip: pass useSafeAreaInsets().top + 8 for exact values. */
   topOffset?: number;
   bottomOffset?: number;
   theme?: ToastTheme;
