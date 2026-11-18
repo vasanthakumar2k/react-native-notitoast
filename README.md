@@ -145,10 +145,6 @@ Hook form: `const toast = useToast();`
 | `position` | `'top' \| 'bottom'` | `'top'` |
 | `duration` | ms, `0` = sticky | per type |
 | `showProgress` | `boolean` | `false` |
-| `swipeable` | `boolean` — `false` turns off all swipe directions | `true` |
-| `swipeLeft` `swipeRight` | `boolean` — swipe sideways to dismiss. Turning either on turns the default up/down swipe off | `false` |
-| `swipeUp` | `boolean` | `true` on top toasts when left/right are off |
-| `swipeDown` | `boolean` | `true` on bottom toasts when left/right are off |
 | `showIcon` | `boolean` | `true` |
 | `showTypeBadge` | `boolean` — badge on left image / app icon | `true` |
 | `showAccentBar` | `boolean` | auto (on when no left icon) |
@@ -193,7 +189,7 @@ Hook form: `const toast = useToast();`
 ## Behaviour
 
 - Toasts queue: one at a time, the next slides in after.
-- By default, swipe up to dismiss (down for bottom toasts). Turn on `swipeRight` and/or `swipeLeft` to dismiss sideways instead; then up/down is off unless you also set `swipeUp` / `swipeDown`. `swipeable={false}` turns all swiping off. Press and hold pauses the timer.
+- Swipe up to dismiss (down for bottom toasts), or tap to close. Press and hold pauses the timer.
 - Announced to screen readers.
 - Toasts render behind an open React Native `<Modal>`. Put another `<ToastProvider>` inside the modal if needed.
 

@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import {
   AccessibilityInfo,
   Animated,
-  Dimensions,
   Easing,
   Image,
   PanResponder,
@@ -18,8 +17,6 @@ import type {
 } from 'react-native';
 import { defaultDurations, palettes, typeColors, typeGlyphs } from './theme';
 import type { ToastAppearance, ToastConfig, ToastData } from './types';
-
-type SwipeDirection = 'left' | 'right' | 'up' | 'down';
 
 interface Props {
   toast: ToastData;
@@ -107,32 +104,7 @@ export function ToastItem({
   const onHideRef = useRef(toast.onHide);
   onHideRef.current = toast.onHide;
 
-  const translateX = useRef(new Animated.Value(0)).current;
   const dragging = useRef(false);
-  // Fade out while dragged sideways.
-  const sideFade = useRef(
-    translateX.interpolate({
-      inputRange: [-Dimensions.get('window').width, 0, Dimensions.get('window').width],
-      outputRange: [0, 1, 0],
-      extrapolate: 'clamp',
-    })
-  ).current;
-
-  // Swipe directions. `swipeable: false` turns all of them off.
-  const swipeable = o.swipeable ?? true;
-  // Left/right are opt-in. Up (top) / down (bottom) is the default, used
-  // only while neither left nor right is turned on.
-  const left = swipeable && (o.swipeLeft ?? false);
-  const right = swipeable && (o.swipeRight ?? false);
-  const sideways = left || right;
-  const swipe = {
-    left,
-    right,
-    up: swipeable && (o.swipeUp ?? (isTop && !sideways)),
-    down: swipeable && (o.swipeDown ?? (!isTop && !sideways)),
-  };
-  const swipeRef = useRef(swipe);
-  swipeRef.current = swipe;
 
   const pauseTimer = () => progress.stopAnimation();
 
@@ -150,28 +122,15 @@ export function ToastItem({
     });
   };
 
-  /** `direction` = swipe direction the toast leaves in; default slides back to its edge. */
-  const dismiss = (direction?: SwipeDirection) => {
+  const dismiss = () => {
     if (exiting.current) return;
     exiting.current = true;
     progress.stopAnimation();
-    const { width, height } = Dimensions.get('window');
-    const horizontal = direction === 'left' || direction === 'right';
-    const target =
-      direction === 'left'
-        ? -width
-        : direction === 'right'
-          ? width
-          : direction === 'up'
-            ? -height
-            : direction === 'down'
-              ? height
-              : hiddenY;
     Animated.parallel([
-      Animated.timing(horizontal ? translateX : translateY, {
-        toValue: target,
-        duration: direction ? 200 : 240,
-        easing: direction ? Easing.out(Easing.quad) : Easing.in(Easing.cubic),
+      Animated.timing(translateY, {
+        toValue: hiddenY,
+        duration: 240,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
@@ -189,63 +148,38 @@ export function ToastItem({
   const actions = useRef({ dismiss, startTimer, pauseTimer });
   actions.current = { dismiss, startTimer, pauseTimer };
 
-  // Axis locked when the drag starts, so a swipe moves on one axis only.
-  const axis = useRef<'x' | 'y'>('y');
-
   const snapBack = () => {
     dragging.current = false;
-    Animated.parallel([
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
-    ]).start();
+    Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
     actions.current.startTimer();
   };
 
-  /** Allowed direction follows the finger; a blocked one only gives a little. */
-  const follow = (d: number, negOk: boolean, posOk: boolean) =>
-    d < 0 ? (negOk ? d : d * 0.15) : posOk ? d : d * 0.15;
-
-  /** Claim the drag only on an axis that has an enabled direction. */
-  const shouldClaim = (g: PanResponderGestureState) => {
-    const s = swipeRef.current;
-    const absX = Math.abs(g.dx);
-    const absY = Math.abs(g.dy);
-    if (absX > absY) return absX > 6 && (s.left || s.right);
-    return absY > 6 && (s.up || s.down);
-  };
+  // Swipe toward the edge to dismiss: up for top toasts, down for bottom ones.
+  // Dragging the other way only gives a little and springs back.
+  const isVerticalDrag = (g: PanResponderGestureState) =>
+    Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx);
 
   const pan = useRef(
     PanResponder.create({
-      // Capture phase: take the drag before the inner Pressable can keep it,
-      // otherwise sideways drags can get swallowed by the press handling.
-      onMoveShouldSetPanResponderCapture: (_, g) => shouldClaim(g),
-      onMoveShouldSetPanResponder: (_, g) => shouldClaim(g),
-      onPanResponderGrant: (_, g) => {
-        axis.current = Math.abs(g.dx) > Math.abs(g.dy) ? 'x' : 'y';
+      // Capture phase so the inner Pressable can't keep the drag.
+      onMoveShouldSetPanResponderCapture: (_, g) => isVerticalDrag(g),
+      onMoveShouldSetPanResponder: (_, g) => isVerticalDrag(g),
+      onPanResponderGrant: () => {
         dragging.current = true;
         actions.current.pauseTimer();
       },
       onPanResponderMove: (_, g) => {
-        const s = swipeRef.current;
-        if (axis.current === 'x') {
-          translateX.setValue(follow(g.dx, s.left, s.right));
-        } else {
-          translateY.setValue(follow(g.dy, s.up, s.down));
-        }
+        const toward = isTop ? Math.min(g.dy, 0) : Math.max(g.dy, 0);
+        const away = isTop ? Math.max(g.dy, 0) : Math.min(g.dy, 0);
+        translateY.setValue(toward + away * 0.15);
       },
       onPanResponderRelease: (_, g) => {
-        const s = swipeRef.current;
-        let direction: SwipeDirection | undefined;
-        if (axis.current === 'x') {
-          if (s.left && (g.dx < -60 || g.vx < -0.3)) direction = 'left';
-          else if (s.right && (g.dx > 60 || g.vx > 0.3)) direction = 'right';
-        } else {
-          if (s.up && (g.dy < -24 || g.vy < -0.6)) direction = 'up';
-          else if (s.down && (g.dy > 24 || g.vy > 0.6)) direction = 'down';
-        }
-        if (direction) {
+        const shouldDismiss = isTop
+          ? g.dy < -24 || g.vy < -0.6
+          : g.dy > 24 || g.vy > 0.6;
+        if (shouldDismiss) {
           dragging.current = false;
-          actions.current.dismiss(direction);
+          actions.current.dismiss();
           return;
         }
         snapBack();
@@ -317,8 +251,8 @@ export function ToastItem({
         styles.container,
         isTop ? { top: topOffset } : { bottom: bottomOffset },
         {
-          opacity: Animated.multiply(opacity, sideFade),
-          transform: [{ translateX }, { translateY }],
+          opacity,
+          transform: [{ translateY }],
         },
       ]}
       {...pan.panHandlers}

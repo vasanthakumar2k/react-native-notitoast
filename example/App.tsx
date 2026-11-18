@@ -26,10 +26,6 @@ const demos: [string, () => void][] = [
   ['Fixed height', () => toast.info('Fixed height', '80px tall', { height: 80 })],
   ['Long duration', () => toast.info('Stays 8 seconds', undefined, { duration: 8000, showProgress: true })],
   ['Sticky', () => toast.warning('Stays until swiped', 'Swipe up to close', { duration: 0 })],
-  ['Swipe right', () => toast.info('Swipe right', 'Only right dismisses', { duration: 0, swipeRight: true })],
-  ['Swipe left', () => toast.info('Swipe left', 'Only left dismisses', { duration: 0, swipeLeft: true })],
-  ['Swipe left + right', () => toast.info('Swipe sideways', 'Left or right dismisses', { duration: 0, swipeLeft: true, swipeRight: true })],
-  ['No swipe', () => toast.info('No swipe', 'Tap to close', { duration: 0, swipeable: false })],
   ['Update in place', () => {
     const id = toast.info('Uploading…', 'Please wait', { duration: 0 });
     setTimeout(() => toast.success('Uploaded', 'Your file is live', { id }), 2000);
