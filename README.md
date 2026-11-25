@@ -1,7 +1,7 @@
 # react-native-notitoast
 
 Neat, **mobile-notification-style** toasts for React Native — success, error, warning and info, with images, app icon, variants and full customization.
-Zero dependencies · TypeScript · Expo & bare RN · light/dark mode · swipe to dismiss.
+Zero dependencies · TypeScript · Expo & bare RN · light/dark mode · swipe to dismiss · reduce-motion aware · keyboard aware.
 
 ![Options reference 1](https://raw.githubusercontent.com/vasanthakumar2k/react-native-notitoast/main/docs/notitoast-reference-1.png)
 ![Options reference 2](https://raw.githubusercontent.com/vasanthakumar2k/react-native-notitoast/main/docs/notitoast-reference-2.png)
@@ -121,6 +121,19 @@ toast.info('Custom', 'Any colors you like', {
 <ToastProvider colors={{ success: '#10B981', info: '#6366F1' }} />
 ```
 
+### Reduce motion (new in 2.1)
+
+By default toasts follow the system "Reduce Motion" setting and fade instead of sliding. Force it either way:
+
+```tsx
+<ToastProvider reduceMotion />                          // always fade
+toast.info('Hi', undefined, { reduceMotion: false });   // always slide
+```
+
+### Keyboard (new in 2.1)
+
+On iOS, bottom toasts lift above the keyboard automatically. Turn it off with `<ToastProvider avoidKeyboard={false} />`. Android already resizes the window, so nothing changes there.
+
 ### Update a toast in place
 
 ```tsx
@@ -145,6 +158,7 @@ Hook form: `const toast = useToast();`
 | `position` | `'top' \| 'bottom'` | `'top'` |
 | `duration` | ms, `0` = sticky | per type |
 | `showProgress` | `boolean` | `false` |
+| `reduceMotion` | `boolean` — fade instead of slide | system setting |
 | `showIcon` | `boolean` | `true` |
 | `showTypeBadge` | `boolean` — badge on left image / app icon | `true` |
 | `showAccentBar` | `boolean` | auto (on when no left icon) |
@@ -181,6 +195,7 @@ Hook form: `const toast = useToast();`
 | `durations` | `{ success?, error?, warning?, info? }` | 3500 / 5000 / 4000 / 3500 |
 | `topOffset` | `number` | below the notch / Dynamic Island on iOS, status bar + 8 on Android |
 | `bottomOffset` | `number` | `40` |
+| `avoidKeyboard` | `boolean` — lift bottom toasts above the iOS keyboard | `true` |
 
 **Left slot priority:** left `image` → `icon` → `appIcon` → type icon → accent stripe.
 
@@ -190,7 +205,8 @@ Hook form: `const toast = useToast();`
 
 - Toasts queue: one at a time, the next slides in after.
 - Swipe up to dismiss (down for bottom toasts), or tap to close. Press and hold pauses the timer.
-- Announced to screen readers.
+- Announced to screen readers. Respects the system Reduce Motion setting.
+- The progress bar runs on the native driver, so it stays smooth when the JS thread is busy.
 - Toasts render behind an open React Native `<Modal>`. Put another `<ToastProvider>` inside the modal if needed.
 
 ## License

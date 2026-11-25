@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import type {
   ImageSourcePropType,
+  LayoutChangeEvent,
   PanResponderGestureState,
 } from 'react-native';
 import { defaultDurations, palettes, typeColors, typeGlyphs } from './theme';
@@ -39,7 +40,7 @@ function mergeAppearance(
   return out as ToastAppearance;
 }
 
-export function ToastItem({
+function ToastItemImpl({
   toast,
   config,
   scheme,
@@ -65,7 +66,8 @@ export function ToastItem({
   // Colors
   const onFilled = type === 'warning' ? '#111827' : '#FFFFFF';
   const cardBg = o.backgroundColor ?? (filled ? accent : palette.card);
-  const borderColor = o.borderColor ?? (filled ? 'transparent' : palette.border);
+  const borderColor =
+    o.borderColor ?? (filled ? 'transparent' : palette.border);
   const titleColor = o.titleColor ?? (filled ? onFilled : palette.title);
   const messageColor = o.messageColor ?? (filled ? onFilled : palette.message);
   const badgeBg = filled ? onFilled : accent;
@@ -106,6 +108,16 @@ export function ToastItem({
 
   const dragging = useRef(false);
 
+  // Reduce motion: fade only, no slide. The `reduceMotion` option wins over
+  // the system accessibility setting.
+  const reduceMotion = useRef(o.reduceMotion ?? false);
+
+  // The progress bar runs on the native driver: it slides inside a clipped
+  // track instead of animating `width` on the JS thread.
+  const [trackWidth, setTrackWidth] = useState(0);
+  const onTrackLayout = (e: LayoutChangeEvent) =>
+    setTrackWidth(e.nativeEvent.layout.width);
+
   const pauseTimer = () => progress.stopAnimation();
 
   const startTimer = () => {
@@ -115,7 +127,7 @@ export function ToastItem({
         toValue: 0,
         duration: value * duration,
         easing: Easing.linear,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) dismiss();
       });
@@ -126,19 +138,23 @@ export function ToastItem({
     if (exiting.current) return;
     exiting.current = true;
     progress.stopAnimation();
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: hiddenY,
-        duration: 240,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    const fadeOut = Animated.timing(opacity, {
+      toValue: 0,
+      duration: reduceMotion.current ? 160 : 200,
+      useNativeDriver: true,
+    });
+    (reduceMotion.current
+      ? fadeOut
+      : Animated.parallel([
+          Animated.timing(translateY, {
+            toValue: hiddenY,
+            duration: 240,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          fadeOut,
+        ])
+    ).start(() => {
       onHideRef.current?.();
       onExitedRef.current();
     });
@@ -159,56 +175,82 @@ export function ToastItem({
   const isVerticalDrag = (g: PanResponderGestureState) =>
     Math.abs(g.dy) > 6 && Math.abs(g.dy) > Math.abs(g.dx);
 
-  const pan = useRef(
-    PanResponder.create({
-      // Capture phase so the inner Pressable can't keep the drag.
-      onMoveShouldSetPanResponderCapture: (_, g) => isVerticalDrag(g),
-      onMoveShouldSetPanResponder: (_, g) => isVerticalDrag(g),
-      onPanResponderGrant: () => {
-        dragging.current = true;
-        actions.current.pauseTimer();
-      },
-      onPanResponderMove: (_, g) => {
-        const toward = isTop ? Math.min(g.dy, 0) : Math.max(g.dy, 0);
-        const away = isTop ? Math.max(g.dy, 0) : Math.min(g.dy, 0);
-        translateY.setValue(toward + away * 0.15);
-      },
-      onPanResponderRelease: (_, g) => {
-        const shouldDismiss = isTop
-          ? g.dy < -24 || g.vy < -0.6
-          : g.dy > 24 || g.vy > 0.6;
-        if (shouldDismiss) {
-          dragging.current = false;
-          actions.current.dismiss();
-          return;
-        }
-        snapBack();
-      },
-      onPanResponderTerminate: () => snapBack(),
-      onPanResponderTerminationRequest: () => false,
-    })
-  ).current;
+  // useMemo, not useRef(create()), so it is built once instead of every render.
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        // Capture phase so the inner Pressable can't keep the drag.
+        onMoveShouldSetPanResponderCapture: (_, g) => isVerticalDrag(g),
+        onMoveShouldSetPanResponder: (_, g) => isVerticalDrag(g),
+        onPanResponderGrant: () => {
+          dragging.current = true;
+          actions.current.pauseTimer();
+        },
+        onPanResponderMove: (_, g) => {
+          const toward = isTop ? Math.min(g.dy, 0) : Math.max(g.dy, 0);
+          const away = isTop ? Math.max(g.dy, 0) : Math.min(g.dy, 0);
+          translateY.setValue(toward + away * 0.15);
+        },
+        onPanResponderRelease: (_, g) => {
+          const shouldDismiss = isTop
+            ? g.dy < -24 || g.vy < -0.6
+            : g.dy > 24 || g.vy > 0.6;
+          if (shouldDismiss) {
+            dragging.current = false;
+            actions.current.dismiss();
+            return;
+          }
+          snapBack();
+        },
+        onPanResponderTerminate: () => snapBack(),
+        onPanResponderTerminationRequest: () => false,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   // Enter animation + announce for screen readers.
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        damping: 18,
-        stiffness: 180,
-        mass: 0.9,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    startTimer();
+    let alive = true;
+    const enter = (reduce: boolean) => {
+      if (!alive) return;
+      reduceMotion.current = reduce;
+      if (reduce) {
+        translateY.setValue(0);
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        Animated.parallel([
+          Animated.spring(translateY, {
+            toValue: 0,
+            damping: 18,
+            stiffness: 180,
+            mass: 0.9,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+      startTimer();
+    };
+    if (o.reduceMotion !== undefined) {
+      enter(o.reduceMotion);
+    } else {
+      AccessibilityInfo.isReduceMotionEnabled().then(enter, () => enter(false));
+    }
     const spoken = [toast.title, toast.message].filter(Boolean).join('. ');
     if (spoken) AccessibilityInfo.announceForAccessibility(spoken);
-    return () => progress.stopAnimation();
+    return () => {
+      alive = false;
+      progress.stopAnimation();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -232,9 +274,9 @@ export function ToastItem({
     dismiss();
   };
 
-  const barWidth = progress.interpolate({
+  const barTranslateX = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [-trackWidth, 0],
   });
 
   const sizeStyle = {
@@ -420,6 +462,7 @@ export function ToastItem({
 
           {showProgress && duration > 0 ? (
             <View
+              onLayout={onTrackLayout}
               style={[
                 styles.track,
                 {
@@ -434,7 +477,8 @@ export function ToastItem({
                   styles.bar,
                   {
                     backgroundColor: filled ? onFilled : accent,
-                    width: barWidth,
+                    width: trackWidth,
+                    transform: [{ translateX: barTranslateX }],
                   },
                 ]}
               />
@@ -549,8 +593,27 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 3,
+    overflow: 'hidden',
   },
   bar: {
     height: 3,
   },
 });
+
+function shallowEqual(a: object, b: object) {
+  const ak = Object.keys(a) as (keyof typeof a)[];
+  if (ak.length !== Object.keys(b).length) return false;
+  return ak.every((k) => a[k] === b[k]);
+}
+
+/** Skips re-renders from the provider unless something this toast shows changed. */
+export const ToastItem = memo(
+  ToastItemImpl,
+  (prev, next) =>
+    prev.toast === next.toast &&
+    prev.scheme === next.scheme &&
+    prev.topOffset === next.topOffset &&
+    prev.bottomOffset === next.bottomOffset &&
+    prev.onExited === next.onExited &&
+    shallowEqual(prev.config, next.config)
+);

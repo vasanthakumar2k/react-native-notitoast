@@ -22,6 +22,8 @@ export interface ToastAppearance {
   duration?: number;
   /** Thin countdown bar at the bottom. Default: false. */
   showProgress?: boolean;
+  /** Fade instead of slide. Default: follows the system "Reduce Motion" setting. */
+  reduceMotion?: boolean;
 
   /** Show the success/error/warning/info icon. Default: true. */
   showIcon?: boolean;
@@ -83,6 +85,8 @@ export interface ToastConfig extends ToastAppearance {
   /** Distance from the top edge. Default: below the status bar / notch / Dynamic Island. Tip: pass useSafeAreaInsets().top + 8 for exact values. */
   topOffset?: number;
   bottomOffset?: number;
+  /** Lift bottom toasts above the keyboard on iOS (Android resizes the window itself). Default: true. */
+  avoidKeyboard?: boolean;
   theme?: ToastTheme;
   /** Type colors. */
   colors?: Partial<Record<ToastType, string>>;

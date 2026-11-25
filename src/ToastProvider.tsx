@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
+  Keyboard,
   Platform,
   StatusBar,
   StyleSheet,
@@ -37,6 +38,26 @@ export function ToastProvider({ children, ...config }: ToastProviderProps) {
   const counter = useRef(0);
   const systemScheme = useColorScheme();
   const window = useWindowDimensions();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const avoidKeyboard = config.avoidKeyboard ?? true;
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !avoidKeyboard) {
+      setKeyboardHeight(0);
+      return;
+    }
+    const change = Keyboard.addListener('keyboardWillChangeFrame', (e) => {
+      const { screenY, height } = e.endCoordinates;
+      setKeyboardHeight(screenY >= window.height ? 0 : height);
+    });
+    const hide = Keyboard.addListener('keyboardWillHide', () =>
+      setKeyboardHeight(0)
+    );
+    return () => {
+      change.remove();
+      hide.remove();
+    };
+  }, [avoidKeyboard, window.height]);
 
   useEffect(() => {
     setToastHandler({
@@ -72,9 +93,10 @@ export function ToastProvider({ children, ...config }: ToastProviderProps) {
 
   const current = queue[0];
 
-  const handleExited = useCallback((id: string) => {
-    setQueue((q) => q.filter((t) => t.id !== id));
-  }, []);
+  const currentId = current?.id;
+  const handleExited = useCallback(() => {
+    setQueue((q) => q.filter((t) => t.id !== currentId));
+  }, [currentId]);
 
   const scheme =
     config.theme === 'light' || config.theme === 'dark'
@@ -88,7 +110,7 @@ export function ToastProvider({ children, ...config }: ToastProviderProps) {
     (Platform.OS === 'android'
       ? (StatusBar.currentHeight ?? 24) + 8
       : iosTopInset(window.width, window.height) + 8);
-  const bottomOffset = config.bottomOffset ?? 40;
+  const bottomOffset = (config.bottomOffset ?? 40) + keyboardHeight;
 
   return (
     <View style={styles.root}>
@@ -101,7 +123,7 @@ export function ToastProvider({ children, ...config }: ToastProviderProps) {
           scheme={scheme}
           topOffset={topOffset}
           bottomOffset={bottomOffset}
-          onExited={() => handleExited(current.id)}
+          onExited={handleExited}
         />
       ) : null}
     </View>
